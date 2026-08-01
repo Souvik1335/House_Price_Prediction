@@ -12,7 +12,7 @@ df = pd.read_csv(r'C:\Users\souvi\Videos\AII SUBJECT\HOUSE_GG_COLAB\house_price_
 print(df.isnull().sum())
 
 #Define the X & Y
-x = df.drop('Price', axis=1)
+x = df.drop(['Price', 'HouseID'], axis=1)
 y = df['Price']
 
 #Split the dataset
