@@ -12,9 +12,9 @@ CREATE TABLE IF NOT EXISTS User_Database(
     phone TEXT UNIQUE,
     password TEXT,
     Date_of_Birth TEXT,
-    alternet_phone_number TEXT,
-    paayment_type TEXT,
-    emi_years INT,
+    alternate_phone_number TEXT,
+    payment_type TEXT,
+    emi_years INTEGER,
     interest_rate REAL
 )
 """)
