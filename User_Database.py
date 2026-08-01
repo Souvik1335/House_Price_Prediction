@@ -1,0 +1,25 @@
+import sqlite3
+
+connection = sqlite3.connect('User_Database.db')
+
+cursor = connection.cursor()
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS User_Database(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT,
+    email TEXT UNIQUE,
+    phone TEXT UNIQUE,
+    password TEXT,
+    Date_of_Birth TEXT,
+    alternet_phone_number TEXT,
+    paayment_type TEXT,
+    emi_years INT,
+    interest_rate REAL
+)
+""")
+
+connection.commit()
+connection.close()
+
+print("Database Created Successfully!")
