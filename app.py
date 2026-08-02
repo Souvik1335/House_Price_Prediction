@@ -7,6 +7,9 @@ import sqlite3
 import warnings
 import bcrypt
 from sklearn.exceptions import InconsistentVersionWarning
+import random
+from datetime import datetime, timedelta
+from email_Service import send_otp_email
 
 warnings.filterwarnings(
     "ignore",
@@ -89,7 +92,7 @@ def predict(data: HousePricePrediction):
             detail=f"Prediction failed: {str(e)}"
         )
 @app.post("/register")
-def register(user: RegisterUser):
+async def register(user: RegisterUser):
 
     connection = sqlite3.connect("User_Database.db")
     cursor = connection.cursor()
@@ -101,6 +104,12 @@ def register(user: RegisterUser):
     hashed_password = hashed_password.decode("utf-8")
 
     try:
+        otp = str(random.randint(100000, 999999))
+
+        otp_expiry = (
+            datetime.now() + timedelta(minutes=5)
+            ).strftime("%Y-%m-%d %H:%M:%S")
+        
         # Check if email already exists
         cursor.execute(
             "SELECT id FROM User_Database WHERE email = ?",
@@ -125,10 +134,12 @@ def register(user: RegisterUser):
         alternate_phone_number,
         payment_type,
         emi_years,
-        interest_rate
+        interest_rate,
+        otp,
+        otp_expiry
         )
 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
 
             user.name,
@@ -139,11 +150,15 @@ def register(user: RegisterUser):
             user.alternate_phone_number,
             user.payment_type,
             user.emi_years,
-            user.interest_rate
+            user.interest_rate,
+            otp,
+            otp_expiry
 
         ))
 
         connection.commit()
+
+        await send_otp_email(user.email, otp)
 
         return {
             "Message": "User Registered Successfully"
@@ -162,6 +177,7 @@ def login(user:UserLogin):
     cursor = connection.cursor()
 
     try:
+        
         cursor.execute("""
         SELECT password FROM User_Database WHERE email = ?
         """, (user.email,))
@@ -169,7 +185,7 @@ def login(user:UserLogin):
         result = cursor.fetchone()
 
         if result is None:
-            raise HTTPException(status_code=400, detail='Email Not Found')
+            raise HTTPException(status_code=404, detail='Email Not Found')
 
         stored_password = result[0]
 
