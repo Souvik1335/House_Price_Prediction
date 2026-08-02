@@ -1,8 +1,17 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr
 from typing import Annotated
 import numpy as np
 import joblib
+import sqlite3
+import warnings
+import bcrypt
+from sklearn.exceptions import InconsistentVersionWarning
+
+warnings.filterwarnings(
+    "ignore",
+    category=InconsistentVersionWarning
+)
 
 #Call FastAPI
 # Create FastAPI Application
@@ -27,12 +36,23 @@ class HousePricePrediction(BaseModel):
     School_Rating: Annotated[int, Field(..., ge=1, le=10)]
     Crime_Rate: Annotated[float, Field(..., ge=0, le=10)]
 
+class RegisterUser(BaseModel):
+    name: str
+    email: EmailStr
+    phone: str
+    password: str
+    date_of_birth: str
+    alternate_phone_number: str
+    payment_type: str
+    emi_years: int
+    interest_rate: float
+
 @app.get('/')
-def First_Comment():
+def home():
     return {'Message' : 'House Price Prediction Model API'}
 
 @app.get('/about')
-def About():
+def about():
     return {'Message' : 'It is a House Prediction Model'}
 
 # Prediction Endpoint
@@ -68,3 +88,102 @@ def predict(data: HousePricePrediction):
             status_code=500,
             detail=f"Prediction failed: {str(e)}"
         )
+@app.post("/register")
+def register(user: RegisterUser):
+
+    connection = sqlite3.connect("User_Database.db")
+    cursor = connection.cursor()
+
+    password_bytes = user.password.encode('utf-8')
+
+    hashed_password = bcrypt.hashpw(password_bytes, bcrypt.gensalt())
+
+    hashed_password = hashed_password.decode("utf-8")
+
+    try:
+        # Check if email already exists
+        cursor.execute(
+            "SELECT id FROM User_Database WHERE email = ?",
+            (user.email,)
+        )
+
+        existing_user = cursor.fetchone()
+
+        if existing_user:
+            raise HTTPException(
+                status_code=400,
+                detail="Email already registered."
+            )
+        
+        cursor.execute("""
+        INSERT INTO User_Database(
+        name,
+        email,
+        phone,
+        password,
+        Date_of_Birth,
+        alternate_phone_number,
+        payment_type,
+        emi_years,
+        interest_rate
+        )
+
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+
+            user.name,
+            user.email,
+            user.phone,
+            hashed_password,
+            user.date_of_birth,
+            user.alternate_phone_number,
+            user.payment_type,
+            user.emi_years,
+            user.interest_rate
+
+        ))
+
+        connection.commit()
+
+        return {
+            "Message": "User Registered Successfully"
+        }
+
+    finally:
+        connection.close()
+
+class UserLogin(BaseModel):
+    email : EmailStr
+    password : str
+
+@app.post('/login')
+def login(user:UserLogin):
+    connection = sqlite3.connect('User_Database.db')
+    cursor = connection.cursor()
+
+    try:
+        cursor.execute("""
+        SELECT password FROM User_Database WHERE email = ?
+        """, (user.email,))
+
+        result = cursor.fetchone()
+
+        if result is None:
+            raise HTTPException(status_code=400, detail='Email Not Found')
+
+        stored_password = result[0]
+
+        if bcrypt.checkpw(
+            user.password.encode("utf-8"),
+            stored_password.encode("utf-8")):
+
+                return {
+                    'Message' : 'User Login Successful'
+                    }
+        else:
+            raise HTTPException(status_code=401, detail='Invalid Password')
+
+    finally:
+        connection.close()
+
+
