@@ -15,7 +15,10 @@ CREATE TABLE IF NOT EXISTS User_Database(
     alternate_phone_number TEXT,
     payment_type TEXT,
     emi_years INTEGER,
-    interest_rate REAL
+    interest_rate REAL,
+    email_verified INTEGER DEFAULT 0,
+    otp TEXT,
+    otp_expiry TEXT
 )
 """)
 
