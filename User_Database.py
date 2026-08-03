@@ -22,6 +22,31 @@ CREATE TABLE IF NOT EXISTS User_Database(
 )
 """)
 
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS Prediction_History(
+
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    user_email TEXT,
+
+    Area_sqft REAL,
+    Bedrooms INTEGER,
+    Bathrooms INTEGER,
+    Floors INTEGER,
+    Age_of_House REAL,
+    Garage INTEGER,
+    Location_Score REAL,
+    Distance_to_City REAL,
+    School_Rating INTEGER,
+    Crime_Rate REAL,
+
+    Predicted_Price REAL,
+
+    Prediction_Time TEXT
+
+)
+""")
+
 connection.commit()
 connection.close()
 
