@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel, Field, EmailStr
 from typing import Annotated
 import numpy as np
@@ -10,6 +10,8 @@ from sklearn.exceptions import InconsistentVersionWarning
 import random
 from datetime import datetime, timedelta
 from email_Service import send_otp_email
+from auth import create_access_token, get_current_user,create_refresh_token
+from fastapi.security import OAuth2PasswordRequestForm
 
 warnings.filterwarnings(
     "ignore",
@@ -58,39 +60,7 @@ def home():
 def about():
     return {'Message' : 'It is a House Prediction Model'}
 
-# Prediction Endpoint
-@app.post("/predict")
-def predict(data: HousePricePrediction):
-    """
-    Predict the price of a house.
-    """
-
-    try:
-        input_features = np.array([[
-            data.Area_sqft,
-            data.Bedrooms,
-            data.Bathrooms,
-            data.Floors,
-            data.Age_of_House,
-            data.Garage,
-            data.Location_Score,
-            data.Distance_to_City,
-            data.School_Rating,
-            data.Crime_Rate
-        ]])
-
-        prediction = model.predict(input_features)[0]
-
-        return {
-            "status": "success",
-            "predicted_price": round(float(prediction), 2)
-        }
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Prediction failed: {str(e)}"
-        )
+    
 @app.post("/register")
 async def register(user: RegisterUser):
 
@@ -171,35 +141,355 @@ class UserLogin(BaseModel):
     email : EmailStr
     password : str
 
-@app.post('/login')
-def login(user:UserLogin):
-    connection = sqlite3.connect('User_Database.db')
+@app.post("/login")
+def login(form_data: OAuth2PasswordRequestForm = Depends()):
+
+    email = form_data.username.strip()
+
+    connection = sqlite3.connect("User_Database.db")
     cursor = connection.cursor()
 
     try:
-        
+
+        # Check whether email exists
         cursor.execute("""
-        SELECT password FROM User_Database WHERE email = ?
+            SELECT password
+            FROM User_Database
+            WHERE email = ?
+        """, (email,))
+
+        result = cursor.fetchone()
+
+        if result is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Email Not Found"
+            )
+
+        stored_password = result[0]
+
+        # Verify password
+        if not bcrypt.checkpw(
+            form_data.password.encode("utf-8"),
+            stored_password.encode("utf-8")
+        ):
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid Password"
+            )
+
+        # Generate Access Token
+        access_token = create_access_token(
+            data={
+                "sub": email
+            }
+        )
+
+        # Generate Refresh Token
+        refresh_token = create_refresh_token(
+            data={
+                "sub": email
+            }
+        )
+
+        # Return both tokens
+        return {
+            "message": "Login Successful",
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer"
+        }
+
+    finally:
+        connection.close()
+
+class ForgotPassword(BaseModel):
+    email: EmailStr
+
+@app.post("/forgot-password")
+async def forgot_password(user: ForgotPassword):
+
+    connection = sqlite3.connect("User_Database.db")
+    cursor = connection.cursor()
+
+    try:
+
+        # Check whether email exists
+        cursor.execute("""
+            SELECT id
+            FROM User_Database
+            WHERE email = ?
+        """, (user.email,))
+
+        existing_user = cursor.fetchone()
+
+        if existing_user is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Email Not Found"
+            )
+
+        # Generate OTP
+        otp = str(random.randint(100000, 999999))
+
+        otp_expiry = (
+            datetime.now() + timedelta(minutes=5)
+        ).strftime("%Y-%m-%d %H:%M:%S")
+
+        # Save OTP
+        cursor.execute("""
+            UPDATE User_Database
+            SET otp = ?,
+                otp_expiry = ?
+            WHERE email = ?
+        """, (
+            otp,
+            otp_expiry,
+            user.email
+        ))
+
+        connection.commit()
+
+        # Send OTP
+        await send_otp_email(user.email, otp)
+
+        return {
+            "message": "OTP sent successfully to your email."
+        }
+
+    finally:
+        connection.close()
+
+class ResetPassword(BaseModel):
+    email: EmailStr
+    otp: str
+    new_password: str
+
+@app.post("/reset-password")
+async def reset_password(user: ResetPassword):
+
+    connection = sqlite3.connect("User_Database.db")
+    cursor = connection.cursor()
+
+    try:
+
+        # Check email, OTP and expiry
+        cursor.execute("""
+            SELECT otp, otp_expiry
+            FROM User_Database
+            WHERE email = ?
         """, (user.email,))
 
         result = cursor.fetchone()
 
         if result is None:
-            raise HTTPException(status_code=404, detail='Email Not Found')
+            raise HTTPException(
+                status_code=404,
+                detail="Email Not Found"
+            )
 
-        stored_password = result[0]
+        stored_otp = result[0]
+        otp_expiry = result[1]
 
-        if bcrypt.checkpw(
-            user.password.encode("utf-8"),
-            stored_password.encode("utf-8")):
+        # Verify OTP
+        if stored_otp != user.otp:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid OTP"
+            )
 
-                return {
-                    'Message' : 'User Login Successful'
-                    }
-        else:
-            raise HTTPException(status_code=401, detail='Invalid Password')
+        # Check OTP expiry
+        expiry_time = datetime.strptime(
+            otp_expiry,
+            "%Y-%m-%d %H:%M:%S"
+        )
+
+        if datetime.now() > expiry_time:
+            raise HTTPException(
+                status_code=400,
+                detail="OTP Expired"
+            )
+
+        # Hash new password
+        hashed_password = bcrypt.hashpw(
+            user.new_password.encode("utf-8"),
+            bcrypt.gensalt()
+        ).decode("utf-8")
+
+        # Update password and clear OTP
+        cursor.execute("""
+            UPDATE User_Database
+            SET password = ?,
+                otp = NULL,
+                otp_expiry = NULL
+            WHERE email = ?
+        """, (
+            hashed_password,
+            user.email
+        ))
+
+        connection.commit()
+
+        return {
+            "message": "Password reset successful."
+        }
 
     finally:
         connection.close()
 
+def get_user_profile(email: str):
 
+    connection = sqlite3.connect("User_Database.db")
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        SELECT
+            id,
+            name,
+            email,
+            phone,
+            Date_of_Birth,
+            alternate_phone_number,
+            payment_type,
+            emi_years,
+            interest_rate
+        FROM User_Database
+        WHERE email = ?
+    """, (email,))
+
+    user = cursor.fetchone()
+
+    connection.close()
+
+    return user
+
+
+@app.get("/me")
+def get_me(current_user: str = Depends(get_current_user)):
+    return {
+        "email": current_user
+    }
+
+@app.get("/profile")
+def profile(current_user: str = Depends(get_current_user)):
+
+    user = get_user_profile(current_user)
+
+    if user is None:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+
+    return {
+        "id": user[0],
+        "name": user[1],
+        "email": user[2],
+        "phone": user[3],
+        "date_of_birth": user[4],
+        "alternate_phone_number": user[5],
+        "payment_type": user[6],
+        "emi_years": user[7],
+        "interest_rate": user[8]
+    }
+
+@app.post("/predict")
+def predict(
+    data: HousePricePrediction,
+    current_user: str = Depends(get_current_user)
+):
+
+    try:
+
+        input_features = np.array([[
+            data.Area_sqft,
+            data.Bedrooms,
+            data.Bathrooms,
+            data.Floors,
+            data.Age_of_House,
+            data.Garage,
+            data.Location_Score,
+            data.Distance_to_City,
+            data.School_Rating,
+            data.Crime_Rate
+        ]])
+
+        prediction = model.predict(input_features)[0]
+
+        connection = sqlite3.connect("User_Database.db")
+        cursor = connection.cursor()
+
+        cursor.execute("""
+        INSERT INTO Prediction_History(
+
+            user_email,
+            Area_sqft,
+            Bedrooms,
+            Bathrooms,
+            Floors,
+            Age_of_House,
+            Garage,
+            Location_Score,
+            Distance_to_City,
+            School_Rating,
+            Crime_Rate,
+            Predicted_Price,
+            Prediction_Time
+
+        )
+
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+
+            current_user,
+            data.Area_sqft,
+            data.Bedrooms,
+            data.Bathrooms,
+            data.Floors,
+            data.Age_of_House,
+            data.Garage,
+            data.Location_Score,
+            data.Distance_to_City,
+            data.School_Rating,
+            data.Crime_Rate,
+            float(prediction),
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        ))
+
+        connection.commit()
+        connection.close()
+
+        return {
+            "status": "success",
+            "predicted_price": round(float(prediction), 2)
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+@app.get("/users")
+def users():
+
+    connection = sqlite3.connect("User_Database.db")
+    cursor = connection.cursor()
+
+    cursor.execute("SELECT id, name, email FROM User_Database")
+
+    data = cursor.fetchall()
+
+    connection.close()
+
+    return data
+
+@app.post("/logout")
+def logout(
+    current_user: str = Depends(get_current_user)
+):
+
+    return {
+        "message": f"{current_user} logged out successfully"
+    }
