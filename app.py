@@ -137,6 +137,69 @@ async def register(user: RegisterUser):
     finally:
         connection.close()
 
+class VerifyEmail(BaseModel):
+    email: EmailStr
+    otp: str
+
+@app.post("/verify-email")
+def verify_email(user: VerifyEmail):
+
+    connection = sqlite3.connect("User_Database.db")
+    cursor = connection.cursor()
+
+    try:
+
+        cursor.execute("""
+            SELECT otp, otp_expiry
+            FROM User_Database
+            WHERE email = ?
+        """, (user.email,))
+
+        result = cursor.fetchone()
+
+        if result is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Email not found."
+            )
+
+        stored_otp = result[0]
+        otp_expiry = result[1]
+
+        if stored_otp != user.otp:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid OTP."
+            )
+
+        expiry_time = datetime.strptime(
+            otp_expiry,
+            "%Y-%m-%d %H:%M:%S"
+        )
+
+        if datetime.now() > expiry_time:
+            raise HTTPException(
+                status_code=400,
+                detail="OTP Expired."
+            )
+
+        cursor.execute("""
+            UPDATE User_Database
+            SET email_verified = 1,
+                otp = NULL,
+                otp_expiry = NULL
+            WHERE email = ?
+        """, (user.email,))
+
+        connection.commit()
+
+        return {
+            "message": "Email verified successfully."
+        }
+
+    finally:
+        connection.close()
+
 class UserLogin(BaseModel):
     email : EmailStr
     password : str
