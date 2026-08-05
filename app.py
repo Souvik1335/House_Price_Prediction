@@ -534,6 +534,54 @@ def predict(
             detail=str(e)
         )
 
+
+@app.get("/prediction-history")
+def get_prediction_history(
+    current_user: str = Depends(get_current_user)
+):
+
+    try:
+
+        connection = sqlite3.connect("User_Database.db")
+        cursor = connection.cursor()
+
+        cursor.execute("""
+        SELECT
+            Area_sqft,
+            Bedrooms,
+            Bathrooms,
+            Floors,
+            Age_of_House,
+            Predicted_Price,
+            Prediction_Time
+
+        FROM Prediction_History
+
+        WHERE user_email = ?
+
+        ORDER BY Prediction_Time DESC
+
+        """, (current_user,))
+
+
+        history = cursor.fetchall()
+
+        connection.close()
+
+
+        return {
+            "history": history
+        }
+
+
+    except Exception as e:
+
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+    
 @app.get("/users")
 def users():
 
