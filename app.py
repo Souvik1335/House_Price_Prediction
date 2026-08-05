@@ -31,8 +31,8 @@ model = joblib.load('house_price_model.pkl')
 
 class HousePricePrediction(BaseModel):
     Area_sqft: Annotated[float, Field(..., gt=0, le=10000)]
-    Bedrooms: Annotated[int, Field(..., ge=1, le=7)]
-    Bathrooms: Annotated[int, Field(..., ge=1, le=3)]
+    Bedrooms: Annotated[int, Field(..., ge=1, le=10)]
+    Bathrooms: Annotated[int, Field(..., ge=1, le=10)]
     Floors: Annotated[int, Field(..., ge=1, le=3)]
     Age_of_House: Annotated[float, Field(..., ge=0, le=50)]
     Garage: Annotated[int, Field(..., ge=0, le=1)]
