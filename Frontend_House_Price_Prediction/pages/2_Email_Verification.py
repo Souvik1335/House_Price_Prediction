@@ -49,7 +49,7 @@ if email:
             )
 
             st.switch_page(
-                "pages/3_Login.py"
+                "pages/3_login.py"
             )
 
 

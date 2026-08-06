@@ -12,7 +12,7 @@ st.title("👤 My Profile")
 
 if "access_token" not in st.session_state:
     st.warning("Please login first.")
-    st.switch_page("pages/3_Login.py")
+    st.switch_page("pages/3_login.py")
 st.success("Login Successful!")
 
 
@@ -68,6 +68,6 @@ elif response.status_code == 200:
 
         st.session_state.clear()
 
-        st.switch_page("pages/3_Login.py")
+        st.switch_page("pages/3_login.py")
 else:
     st.error(response.json()["detail"])

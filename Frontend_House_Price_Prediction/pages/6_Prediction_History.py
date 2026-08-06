@@ -1,5 +1,5 @@
 import streamlit as st
-from api import get_prediction_history, get_prediction_history, get_prediction_history
+from api import get_prediction_history
 
 
 st.set_page_config(
@@ -17,7 +17,7 @@ if "access_token" not in st.session_state:
     st.warning("Please login first.")
 
     st.switch_page(
-        "pages/3_Login.py"
+        "pages/3_login.py"
     )
 
 
