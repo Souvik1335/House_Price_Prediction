@@ -213,6 +213,6 @@ if st.button("🚀 Register", use_container_width=True):
 
                 else:
 
-                    st.error(
-                        response.json()
-                    )
+                    st.write("Status Code:", response.status_code)
+                    st.write("Response Text:")
+                    st.code(response.text)

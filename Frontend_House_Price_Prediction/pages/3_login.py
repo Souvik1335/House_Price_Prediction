@@ -69,7 +69,7 @@ if st.button(
 
 
             st.switch_page(
-                "pages/4_Profile.py"
+                "pages/4_profile.py"
             )
 
 
