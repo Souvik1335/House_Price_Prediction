@@ -105,11 +105,12 @@ async def register(user: RegisterUser):
         payment_type,
         emi_years,
         interest_rate,
+        email_verified,
         otp,
         otp_expiry
         )
 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
 
             user.name,
@@ -121,6 +122,7 @@ async def register(user: RegisterUser):
             user.payment_type,
             user.emi_years,
             user.interest_rate,
+            1,
             otp,
             otp_expiry
 
