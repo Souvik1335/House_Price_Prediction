@@ -1,1 +1,0 @@
-BASE_URL = "https://house-price-prediction-ccuh.onrender.com"

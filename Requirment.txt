@@ -1,5 +1,0 @@
-1. Scikit-learn for ML model creation.
-2. Pandas for dealing with dataset.
-3. Joblib to save the ML model as Pickle model.
-4. FastAPI to create API for this model.
-5. Streamlit for creating frontend for this model.
