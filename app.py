@@ -128,7 +128,7 @@ async def register(user: RegisterUser):
 
         connection.commit()
 
-        await send_otp_email(user.email, otp)
+        # await send_otp_email(user.email, otp)
 
         return {
             "Message": "User Registered Successfully"
