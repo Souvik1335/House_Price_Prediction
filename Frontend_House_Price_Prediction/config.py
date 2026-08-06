@@ -1,1 +1,1 @@
-BASE_URL = "http://backend:8000"
+BASE_URL = "https://house-price-prediction-ccuh.onrender.com"

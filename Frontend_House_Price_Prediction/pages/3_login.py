@@ -75,10 +75,11 @@ if st.button(
 
         else:
 
-            st.error(
-                response.json()["detail"]
-            )
-            
+            try:
+                data = response.json()
+                st.error(data.get("detail", "Unknown error"))
+            except ValueError:
+                st.error(f"Server returned an unexpected response.\n\nStatus Code: {response.status_code}\n\nResponse:\n{response.text}")
 st.divider()
 
 if st.button(
