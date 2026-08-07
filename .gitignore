@@ -12,9 +12,8 @@ __pycache__/
 # VS Code
 .vscode/
 
-# ML Model Files
-*.pkl
-*.joblib
+# Database
+*.db
 
 # Logs
 *.log
