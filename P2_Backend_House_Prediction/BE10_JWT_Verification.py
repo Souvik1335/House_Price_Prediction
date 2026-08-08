@@ -10,7 +10,6 @@ from P2_Backend_House_Prediction.BE9_JWT_Authentication import (
     ALGORITHM
 )
 
-
 oauth2_scheme = OAuth2PasswordBearer(
     tokenUrl="/auth/login"
 )
@@ -37,8 +36,14 @@ def get_current_user(
             algorithms=[ALGORITHM]
         )
 
+        # DEBUG
+        print("🔑 JWT PAYLOAD:", payload)
+
         # Get user ID from token
         user_id = payload.get("sub")
+
+        # DEBUG
+        print("👤 USER ID FROM TOKEN:", user_id)
 
         if user_id is None:
             raise credentials_exception
@@ -52,6 +57,9 @@ def get_current_user(
     user = db.query(User).filter(
         User.id == user_id
     ).first()
+
+    # DEBUG
+    print("👤 USER FROM DATABASE:", user)
 
     if user is None:
         raise credentials_exception
