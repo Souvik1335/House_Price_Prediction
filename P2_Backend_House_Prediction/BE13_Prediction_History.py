@@ -22,9 +22,14 @@ def get_prediction_history(
         PredictionHistory.user_id == current_user.id
     ).all()
 
+    return [
+        {
+            "Date": prediction.created_at.strftime("%d %b %Y"),
+            "Area (sqft)": prediction.area_sqft,
+            "Bedrooms": prediction.bedrooms,
+            "Bathrooms": prediction.bathrooms,
+            "Predicted Price (₹)": f"₹ {prediction.predicted_price:,.0f}"
+        }
 
-    return {
-        "user_id": current_user.id,
-        "user_name": current_user.name,
-        "prediction_history": history
-    }
+        for prediction in history
+    ]

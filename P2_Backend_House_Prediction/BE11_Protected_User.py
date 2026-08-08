@@ -18,5 +18,9 @@ def get_my_profile(
         "message": "Authentication successful",
         "user_id": current_user.id,
         "name": current_user.name,
-        "email": current_user.email
+        "email": current_user.email,
+        "personal_phone": current_user.personal_phone,
+        "alternate_phone": current_user.alternate_phone,
+        "date_of_birth": current_user.date_of_birth,
+        "created_at": current_user.created_at
     }
