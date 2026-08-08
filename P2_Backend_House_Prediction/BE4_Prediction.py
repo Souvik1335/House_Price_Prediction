@@ -4,7 +4,7 @@ from P2_Backend_House_Prediction.BE3_Schema import HousePricePrediction
 from fastapi import Depends
 from P2_Backend_House_Prediction.BE10_JWT_Verification import get_current_user
 import pandas as pd
-from P1_Core_ML_House_Prediction.M1_1_Feature_Engineering import create_engineered_features
+from P2_Backend_House_Prediction.M1_1_Feature_Engineering import create_engineered_features
 from P2_Backend_House_Prediction.BE6_Database_Model import (User, PredictionHistory)
 from P2_Backend_House_Prediction.BE5_User_Database import get_db
 from sqlalchemy.orm import Session
