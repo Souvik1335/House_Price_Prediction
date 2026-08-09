@@ -119,8 +119,11 @@ if submitted:
                 st.info("You can now login to your account.")
 
             else:
-                st.write("STATUS:", response.status_code)
-                st.write("RESPONSE:", response.text)
+                try:
+                    detail = response.json().get("detail", "Registration failed.")
+                except ValueError:
+                    detail = response.text or "Registration failed."
+                st.error(detail)
 
 st.divider()
 
