@@ -112,7 +112,7 @@ if submitted:
 
             response = register_user(user_data)
 
-            if response.status_code == 200:
+            if response.status_code in (200, 201):
 
                 st.success("✅ Registration Successful!")
 
