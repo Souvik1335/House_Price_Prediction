@@ -1,5 +1,6 @@
 import streamlit as st
 from utils.api import reset_password
+import requests
 
 # Page Configuration
 st.set_page_config(
@@ -58,7 +59,12 @@ if submitted:
             st.info("Please login with your new password.")
 
         else:
-            st.error(response.json()["detail"])
+            try:
+                detail = response.json().get("detail","Unknown backend error.")
+                st.error(detail)
+            except requests.exceptions.JSONDecodeError:
+                st.error(f"Backend Error: {response.status_code}")
+                st.code(response.text)
 
 st.divider()
 # Back to Login Button

@@ -1,5 +1,6 @@
 import streamlit as st
-from utils.api import get_profile
+from utils.api import get_profile, logout_user
+import requests
 
 # Page Configuration
 st.set_page_config(
@@ -86,8 +87,30 @@ with col1:
 
 with col2:
     if st.button(
-        "🚪 Logout",
-        use_container_width=True
-    ):
-        st.session_state.token = None
-        st.switch_page("FE1_Frontend_app.py")
+    "🚪 Logout",
+    use_container_width=True
+):
+        with st.spinner("Logging out..."):
+
+            response = logout_user(
+                st.session_state.token
+            )
+
+            if response.status_code == 200:
+                st.session_state.token = None
+                st.success("✅ Logged out successfully!")
+                st.switch_page("FE1_Frontend_app.py")
+
+            else:
+                try:
+                    detail = response.json().get(
+                        "detail",
+                        "Unable to logout."
+                    )
+                    st.error(detail)
+
+                except requests.exceptions.JSONDecodeError:
+                    st.error(
+                        f"Backend Error: {response.status_code}"
+                    )
+                    st.code(response.text)

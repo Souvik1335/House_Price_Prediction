@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from utils.api import get_prediction_history
+import requests
 
 # Page Configuration
 st.set_page_config(
@@ -37,7 +38,19 @@ if response.status_code == 200:
 
 else:
 
-    st.error(response.json()["detail"])
+    try:
+        detail = response.json().get(
+            "detail",
+            "Unable to load prediction history."
+        )
+        st.error(detail)
+
+    except requests.exceptions.JSONDecodeError:
+        st.error(
+            f"Backend Error: {response.status_code}"
+        )
+        st.code(response.text)
+
     st.stop()
 
 

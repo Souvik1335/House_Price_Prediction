@@ -1,5 +1,6 @@
 import streamlit as st
 from utils.api import login_user
+import requests
 
 
 # Page Configuration
@@ -66,7 +67,12 @@ if submitted:
                 st.success("✅ Login Successful!")
                 st.switch_page("pages/FE5_Dashboard.py")
             else:
-                st.error(response.json()["detail"])
+                try:
+                    detail = response.json().get("detail", "Unknown backend error.")
+                    st.error(detail)
+                except requests.exceptions.JSONDecodeError:
+                    st.error(f"Backend Error: {response.status_code}")
+                    st.code(response.text)
 
 st.divider()
 

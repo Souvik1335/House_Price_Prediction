@@ -1,5 +1,6 @@
 import streamlit as st
 from utils.api import logout_user
+import requests
 
 
 # Page Configuration
@@ -79,4 +80,10 @@ with col4:
 
             else:
 
-                st.error(response.json()["detail"])
+                try:
+                    detail = response.json().get("detail","Unknown backend error.")
+                    st.error(detail)
+
+                except requests.exceptions.JSONDecodeError:
+                    st.error(f"Backend Error: {response.status_code}")
+                    st.code(response.text)

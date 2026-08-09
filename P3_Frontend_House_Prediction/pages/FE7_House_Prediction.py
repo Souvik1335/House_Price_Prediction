@@ -1,5 +1,6 @@
 import streamlit as st
 from utils.api import get_prediction
+import requests
 
 st.set_page_config(
     page_title="House Price Prediction",
@@ -127,8 +128,20 @@ if predict:
             "Estimated House Price",
             f"₹ {predicted_price:,.0f}")
 
-        else: 
-            st.error(response.json()["detail"])
+        
+        else:
+            try:
+                detail = response.json().get(
+                    "detail",
+                    "Prediction failed."
+                )
+                st.error(detail)
+
+            except requests.exceptions.JSONDecodeError:
+                st.error(
+                    f"Backend Error: {response.status_code}"
+                )
+                st.code(response.text)
         
 
 st.divider()
