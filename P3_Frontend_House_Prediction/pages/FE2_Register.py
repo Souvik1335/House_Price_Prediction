@@ -119,7 +119,8 @@ if submitted:
                 st.info("You can now login to your account.")
 
             else:
-                st.error(response.json()['detail'])
+                st.write("STATUS:", response.status_code)
+                st.write("RESPONSE:", response.text)
 
 st.divider()
 
